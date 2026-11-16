@@ -46,9 +46,32 @@ The script prints loss and accuracy every 20 epochs, then the confusion matrix, 
 
 The plots show the loss curve, the accuracy curve and the confusion matrix on the test set.
 
+Dataset: 10,000 training samples (207 of class 0, 9,793 of class 1) and 2,000 test samples.
+
+| Epoch | Train loss | Test loss | Train accuracy | Test accuracy |
+|-------|-----------|-----------|----------------|---------------|
+| 20    | 0.0367    | 0.0331    | 0.9793         | 0.9840        |
+| 40    | 0.0257    | 0.0222    | 0.9793         | 0.9840        |
+| 60    | 0.0230    | 0.0194    | 0.9793         | 0.9840        |
+| 80    | 0.0219    | 0.0182    | 0.9793         | 0.9840        |
+| 100   | 0.0214    | 0.0175    | 0.9793         | 0.9840        |
+
+Confusion matrix on the test set (2,000 samples):
+
+|            | Pred 0 | Pred 1 |
+|------------|--------|--------|
+| **True 0** | TN = 0 | FP = 32 |
+| **True 1** | FN = 0 | TP = 1968 |
+
+- Precision: **0.9840**
+- Recall: **1.0000**
+- Test accuracy: **98.40%**
+
+The loss keeps decreasing, but accuracy is flat from about epoch 10 onward. That is a sign the model has settled on predicting one class for everything (see the limitation below).
+
 ## Known limitation: class imbalance
 
-Because most of the cube lies above the hat, the classes are very unbalanced (about 98% class 1 and 2% class 0 in the training set). With this data the network learns to predict class 1 for almost every point. That gives roughly 98% accuracy, but the confusion matrix shows `TN = 0`: it never correctly identifies a point below the surface. **Accuracy alone is misleading here.**
+Because most of the cube lies above the hat, the classes are very unbalanced (207 vs 9,793 in the training set, about 2% vs 98%). With this data the network learns to predict class 1 for every point. That gives 98.40% test accuracy, but the confusion matrix shows `TN = 0`: it never correctly identifies a point below the surface. A model that always answers "1" would score the same accuracy, so **accuracy alone is misleading here.** The 100% recall and 98.4% precision only reflect that the test set is almost entirely class 1.
 
 Ideas to fix this:
 
