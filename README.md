@@ -42,8 +42,6 @@ The script prints loss and accuracy every 20 epochs, then the confusion matrix, 
 
 ## Results (main model)
 
-![Results](results.png)
-
 The plots show the loss curve, the accuracy curve and the confusion matrix on the test set.
 
 Dataset: 10,000 training samples (207 of class 0, 9,793 of class 1) and 2,000 test samples.
