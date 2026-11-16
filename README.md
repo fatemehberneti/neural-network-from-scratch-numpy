@@ -40,7 +40,7 @@ python neural_network.py
 
 The script prints loss and accuracy every 20 epochs, then the confusion matrix, precision and recall. It saves the plots to `results.png`.
 
-## Results
+## Results (main model)
 
 ![Results](results.png)
 
@@ -73,17 +73,66 @@ The loss keeps decreasing, but accuracy is flat from about epoch 10 onward. That
 
 Because most of the cube lies above the hat, the classes are very unbalanced (207 vs 9,793 in the training set, about 2% vs 98%). With this data the network learns to predict class 1 for every point. That gives 98.40% test accuracy, but the confusion matrix shows `TN = 0`: it never correctly identifies a point below the surface. A model that always answers "1" would score the same accuracy, so **accuracy alone is misleading here.** The 100% recall and 98.4% precision only reflect that the test set is almost entirely class 1.
 
-Ideas to fix this:
+## Experiments
 
-- Balance the classes by undersampling the majority class.
-- Evaluate with precision, recall and F1 instead of accuracy.
-- Use binary cross-entropy instead of MSE for a sigmoid output.
-- Normalize or scale the inputs.
+Two additional scripts in `experiments/` explore the same problem in different ways.
+
+### 1. Loop-based version (`neural_network_from_scratch_loops.py`)
+
+A "learning version" that processes **one sample at a time** with plain Python loops instead of matrix operations. It uses the same 3 → 10 → 10 → 10 → 1 sigmoid network with MSE loss and full-batch gradient descent (gradients are summed over all samples, then averaged), learning rate 0.1, 100 epochs, on the same unbalanced data distribution.
+
+```bash
+python experiments/neural_network_from_scratch_loops.py
+```
+
+Note: because of the Python loops it is much slower than the vectorized version. Reduce `epochs` in the script for a quick demo.
+
+| Epoch | Average MSE loss |
+|-------|------------------|
+| 1     | 0.5316 |
+| 10    | 0.3774 |
+| 20    | 0.2375 |
+| 40    | 0.1082 |
+| 60    | 0.0666 |
+| 80    | 0.0493 |
+| 100   | 0.0405 |
+
+**Test accuracy: 98.45%.** The five example predictions printed by the script were all class 1 and all correct. This is almost exactly the share of class 1 in the data, so this result is consistent with the same imbalance problem as the main model (predicting class 1 almost everywhere). The script does not print a confusion matrix, so this cannot be confirmed from its output alone.
+
+### 2. Balanced data + binary cross-entropy (`neural_network_balanced_bce.py`)
+
+An attempt to fix the imbalance: the majority class is undersampled so both classes have the same size, the loss is binary cross-entropy (which pairs naturally with a sigmoid output), and the metric is F1 score instead of accuracy. Weights start small (`randn * 0.1`) and the learning rate is 0.2.
+
+```bash
+python experiments/neural_network_balanced_bce.py
+```
+
+Undersampling leaves very little data: generating 20,000 points gives only **744 training samples** (372 per class).
+
+| Epoch | Train BCE | Test BCE | Train F1 | Test F1 |
+|-------|-----------|----------|----------|---------|
+| 20    | 0.6931    | 0.6931   | 0.6667   | 0.6667  |
+| 40    | 0.6931    | 0.6931   | 0.5475   | 0.6460  |
+| 60    | 0.6931    | 0.6931   | 0.5719   | 0.6515  |
+| 80    | 0.6931    | 0.6931   | 0.6266   | 0.7681  |
+| 100   | 0.6931    | 0.6931   | 0.6738   | 0.8276  |
+
+**This experiment did not train successfully.** A BCE loss of 0.6931 is `ln(2)`, the loss of a model that outputs 0.5 for every input, and it never moved from that value. The F1 score changes between epochs only because the outputs sit right around the 0.5 threshold, so small shifts flip many predictions. It is not a sign of learning, and the 0.83 test F1 should not be read as a good result.
+
+Likely causes and things to try:
+
+- Small initial weights plus four sigmoid layers lead to very small gradients (vanishing gradients) in the early layers.
+- The inputs are unscaled (range -10 to 20), which makes the optimization harder. Standardize them.
+- Only 744 training samples. Generate more points before balancing (for example 200,000).
+- Use a better initialization (Xavier/He), ReLU hidden layers, or train for more epochs.
 
 ## Project structure
 
 ```
-├── neural_network.py   # data generation, network, training, evaluation, plots
+├── neural_network.py                          # main model: data, network, training, evaluation, plots
+├── experiments/
+│   ├── neural_network_from_scratch_loops.py   # slow, per-sample loop version
+│   └── neural_network_balanced_bce.py         # balanced data + BCE + F1 (did not converge)
 ├── requirements.txt
 ├── results.png
 └── README.md
